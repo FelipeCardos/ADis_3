@@ -5,7 +5,10 @@ from spotify import Spotify
 app = Flask(__name__)
 
 db = Database("spotify.db")
-spotify = Spotify("BQCBVN30CEO8-f0bPgzWXMXWC_rf-Gn4cOGPkTGnzoALlQg5xRgpwi3liBfXGtPn0ncjYNTMQRXWo8530BErGP1Snz_RLkFYy7ZFvcPxYy4hM8_Xj24dZL-ENLXD5CQKHJTu0FPqQ3XF9w")
+db.set_foreign_keys()
+spotify = Spotify("BQARyjJkHCaSg18g-bX5kX3QJ9YHJaJI9B9Vv1D-gnfwdgQClPc0eZjaRI6gqvJE06Hp0KlDHwuw4un6ZC-rSyvJQPdNmKCWdFP9Do_XKalpIVIDYFqQr2doaOloYT3ZmY6eMm7qVjvh0w")
+
+print("----------------------------------------------------")
 
 @app.route("/utilizadores", methods=["GET", "POST"])
 @app.route("/utilizadores/<int:id>", methods=["GET","PUT","DELETE"])
@@ -54,7 +57,8 @@ def utilizadores(id = None):
 
 
 @app.route("/artistas", methods=["POST"])
-def artistas():
+@app.route("/artistas/<int:id>", methods=["GET","DELETE"])
+def artistas(id = None):
     
     if request.method == "POST":
         try:
@@ -62,16 +66,27 @@ def artistas():
         except:
             return "Erro: artist_id é obrigatório", 400
         query = db.query("SELECT * FROM artistas WHERE id_spotify = ?", (artist_id,))
-        print(query)
         if query:
-            return "Utilizador já existe", 409
+            return "Artista já existe", 409
         else:
-            result = spotify.get_artist(artist_id)
+            try:
+                result = spotify.get_artist(artist_id)
+            except:
+                return "Erro: Artista não encontrado", 404
             if result:
                 db.query("INSERT INTO artistas (id_spotify, nome) VALUES (?, ?)", (artist_id, result))
                 return result, 201
             else:
                 return "Artista não encontrado", 404
+            
+    if request.method == "DELETE":
+        print(id)
+        result = db.query("DELETE FROM artistas WHERE id = ?", (id,))
+        if not result:
+            return "Artista removido com sucesso", 200
+        else:
+            return "Artista não encontrado", 404
+        
 
 @app.route("/musicas", methods=["POST"])
 def musicas():
@@ -85,15 +100,19 @@ def musicas():
         if query:
             return "Música já existe", 409
         else:
-            result_track = spotify.get_track(track_id)
+            try:
+                result_track = spotify.get_track(track_id)
+            except:
+                return "Erro: Música não encontrada", 404
             if result_track:
                 query = db.query("SELECT * FROM artistas WHERE id_spotify = ?", (result_track['artist_id'],))
                 if query:
-                    db.query("INSERT INTO musicas (id_spotify, nome, id_artista) VALUES (?, ?, ?)", (track_id, result_track['name'], result_track['artist_id']))
+                    db.query("INSERT INTO musicas (id_spotify, nome, id_artista) VALUES (?, ?, ?)", (track_id, result_track['name'], query[0][0]))
                     return result_track['name'], 201
                 else:
                     db.query("INSERT INTO artistas (id_spotify, nome) VALUES (?, ?)", (result_track['artist_id'], result_track['artist_name']))
-                    db.query("INSERT INTO musicas (id_spotify, nome, id_artista) VALUES (?, ?, ?)", (track_id, result_track['name'], result_track['artist_id']))
+                    query = db.query("SELECT * FROM artistas WHERE id_spotify = ?", (result_track['artist_id'],))
+                    db.query("INSERT INTO musicas (id_spotify, nome, id_artista) VALUES (?, ?, ?)", (track_id, result_track['name'], query[0][0]))
                     return result_track['name'], 201
             else:
                 return "Música não encontrada", 404
