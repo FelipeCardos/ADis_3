@@ -1,14 +1,16 @@
 from database import Database
 from flask import Flask, request
-from spotify import Spotify
 
 app = Flask(__name__)
 
 db = Database("spotify.db")
+<<<<<<< HEAD
 db.set_foreign_keys()
 spotify = Spotify("BQARyjJkHCaSg18g-bX5kX3QJ9YHJaJI9B9Vv1D-gnfwdgQClPc0eZjaRI6gqvJE06Hp0KlDHwuw4un6ZC-rSyvJQPdNmKCWdFP9Do_XKalpIVIDYFqQr2doaOloYT3ZmY6eMm7qVjvh0w")
 
 print("----------------------------------------------------")
+=======
+>>>>>>> parent of 89e82e0 (spotify.py post artista/musica)
 
 @app.route("/utilizadores", methods=["GET", "POST"])
 @app.route("/utilizadores/<int:id>", methods=["GET","PUT","DELETE"])
@@ -55,6 +57,7 @@ def utilizadores(id = None):
             else:
                 return "Utilizador não encontrado", 404
 
+<<<<<<< HEAD
 
 @app.route("/artistas", methods=["POST"])
 @app.route("/artistas/<int:id>", methods=["GET","DELETE"])
@@ -87,9 +90,15 @@ def artistas(id = None):
         else:
             return "Artista não encontrado", 404
         
+=======
+@app.route("/artistas")
+def artistas():
+    return {"data": "Lista de artistas"}, 201
+>>>>>>> parent of 89e82e0 (spotify.py post artista/musica)
 
-@app.route("/musicas", methods=["POST"])
+@app.route("/musicas")
 def musicas():
+<<<<<<< HEAD
     
     if request.method == "POST":
         try:
@@ -116,6 +125,9 @@ def musicas():
                     return result_track['name'], 201
             else:
                 return "Música não encontrada", 404
+=======
+    return "Lista de musicas"
+>>>>>>> parent of 89e82e0 (spotify.py post artista/musica)
 
 if __name__ == "__main__":
     app.run(debug=True)
