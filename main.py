@@ -6,63 +6,79 @@ app = Flask(__name__)
 
 db = Database("spotify.db")
 db.set_foreign_keys()
-spotify = Spotify("BQARyjJkHCaSg18g-bX5kX3QJ9YHJaJI9B9Vv1D-gnfwdgQClPc0eZjaRI6gqvJE06Hp0KlDHwuw4un6ZC-rSyvJQPdNmKCWdFP9Do_XKalpIVIDYFqQr2doaOloYT3ZmY6eMm7qVjvh0w")
+spotify = Spotify("BQCvMxoUO2XMSD9dVQq6w3Pk2e-2Oj3sK2Y130nMjBjgXDKH4CVUhmJJTVIOb4DCc6mpXkHVEh7LFgyAbkXUdxEDlZNf7OdY89RnKVfMdE7pI3pbXMZ2vxm31-YJKsgA5beyyXM6uCma6A")
 
 print("----------------------------------------------------")
 
-@app.route("/utilizadores", methods=["GET", "POST"])
+@app.route("/utilizadores", methods=["GET", "DELETE", "POST"])
+@app.route("/utilizadores/create-playlist", methods=["POST"])
 @app.route("/utilizadores/<int:id>", methods=["GET","PUT","DELETE"])
 def utilizadores(id = None):
     
     if request.method == "POST":
-        try:
-            nome = request.form["nome"]
-            senha = request.form["senha"]
-        except:
-            return "Erro: nome e senha são obrigatórios", 400
-        db.query("INSERT INTO utilizadores (nome, senha) VALUES (?, ?)", (nome, senha))
-        return "Utilizador inserido com sucesso", 201
+        if request.path == "/utilizadores":
+            try:
+                nome = request.form["nome"]
+                senha = request.form["senha"]
+            except:
+                return "Erro: nome e senha são obrigatórios", 400
+            db.query("INSERT INTO utilizadores (nome, senha) VALUES (?, ?)", (nome, senha))
+            return "Utilizador inserido com sucesso", 201
+        else:
+            # /utilizadores/create-playlist
+            return "Erro: POST não suportado nesta rota", 405
     
     if request.method == "PUT":
         try:
             senha = request.form["senha"]
         except:
             return "senha é obrigatório", 400
-        result = db.query("UPDATE utilizadores SET senha = ? WHERE id = ?", (senha, id,))
-        if result:
-            return "Utilizador atualizado com sucesso", 200
+        query =  db.query("SELECT * FROM utilizadores WHERE id = ?", (id,))
+        if not query:
+            return "Utilizador não existe", 404
         else:
-            return "Utilizador não encontrado", 404
+            db.query("UPDATE utilizadores SET senha = ? WHERE id = ?", (senha, id,))
+            return "Utilizador atualizado com sucesso", 200
+    
     
     if request.method == "DELETE":
-        result = db.query("DELETE FROM utilizadores WHERE id = ?", (id,))
-        if result:
-            return "Utilizador removido com sucesso", 200
+        if request.path == "/utilizadores":
+            query = db.query("SELECT * FROM utilizadores")
+            if query:
+                db.query("DELETE FROM utilizadores")
+                return "Todos os utilizadores foram apagados", 200
+            else:
+                return "Não existem utilizadores", 404
         else:
-            return "Utilizador não encontrado", 404
+            query = db.query("SELECT * FROM utilizadores WHERE id = ?", (id,))
+            if query:
+                db.query("DELETE FROM utilizadores WHERE id = ?", (id,))
+                return "Utilizador removido com sucesso", 200
+            else:
+                return "Utilizador não encontrado", 404
     
     if request.method == "GET":
         if request.path == "/utilizadores":
             query = db.query("SELECT * FROM utilizadores")
-            result = []
+            result = {"utilizadores": []}
             for x in query:
-                result.append({"id": x[0], "nome": x[1]})
+                result["utilizadores"].append({"id": x[0], "nome": x[1]})
             return str(result), 200
         else:
             result = db.query("SELECT * FROM utilizadores WHERE id = ?", (id,))
             if result:
-                return result[0][1]
+                return {"utilizador":{"id": result[0][0], "nome": result[0][1]}}, 200
             else:
                 return "Utilizador não encontrado", 404
 
 
-@app.route("/artistas", methods=["POST"])
+@app.route("/artistas", methods=["GET","DELETE", "POST"])
 @app.route("/artistas/<int:id>", methods=["GET","DELETE"])
 def artistas(id = None):
     
     if request.method == "POST":
         try:
-            artist_id = request.form["artist_id"]
+            artist_id = request.form["id_spotify"]
         except:
             return "Erro: artist_id é obrigatório", 400
         query = db.query("SELECT * FROM artistas WHERE id_spotify = ?", (artist_id,))
@@ -80,20 +96,43 @@ def artistas(id = None):
                 return "Artista não encontrado", 404
             
     if request.method == "DELETE":
-        print(id)
-        result = db.query("DELETE FROM artistas WHERE id = ?", (id,))
-        if not result:
-            return "Artista removido com sucesso", 200
+        if request.path == "/artistas":
+            query = db.query("SELECT * FROM artistas")
+            if query:
+                db.query("DELETE FROM artistas")
+                return "Todos os artistas foram apagados", 200
+            else:
+                return "Não existem artistas", 404
         else:
-            return "Artista não encontrado", 404
+            query = db.query("SELECT * FROM artistas WHERE id = ?", (id,))
+            if query:
+                result = db.query("DELETE FROM artistas WHERE id = ?", (id,))
+                return "Artista removido com sucesso", 200
+            else:
+                return "Artista não encontrado", 404
+            
+    if request.method == "GET":
+        if request.path == "/artistas":
+            query = db.query("SELECT * FROM artistas")
+            result = {"artistas": []}
+            for x in query:
+                result["artistas"].append({"id": x[0], "id_spotify": x[1], "nome": x[2]})
+            return str(result), 200
+        else:
+            result = db.query("SELECT * FROM artistas WHERE id = ?", (id,))
+            if result:
+                return {"artista":{"id": result[0][0], "id_spotify": result[0][1], "nome": result[0][2]}}, 200
+            else:
+                return "Artista não encontrado", 404
         
 
-@app.route("/musicas", methods=["POST"])
-def musicas():
+@app.route("/musicas", methods=["GET","DELETE","POST"])
+@app.route("/musicas/<int:id>", methods=["GET","DELETE"])
+def musicas(id = None):
     
     if request.method == "POST":
         try:
-            track_id = request.form["track_id"]
+            track_id = request.form["id_spotify"]
         except:
             return "Erro: track_id é obrigatório", 400
         query = db.query("SELECT * FROM musicas WHERE id_spotify = ?", (track_id,))
@@ -114,6 +153,36 @@ def musicas():
                     query = db.query("SELECT * FROM artistas WHERE id_spotify = ?", (result_track['artist_id'],))
                     db.query("INSERT INTO musicas (id_spotify, nome, id_artista) VALUES (?, ?, ?)", (track_id, result_track['name'], query[0][0]))
                     return result_track['name'], 201
+            else:
+                return "Música não encontrada", 404
+    
+    if request.method == "DELETE":
+        if request.path == "/musicas":
+            query = db.query("SELECT * FROM musicas")
+            if query:
+                db.query("DELETE FROM musicas")
+                return "Todas as músicas foram apagadas", 200
+            else:
+                return "Não existem músicas", 404
+        else:
+            query = db.query("SELECT * FROM musicas WHERE id = ?", (id,))
+            if query:
+                db.query("DELETE FROM musicas WHERE id = ?", (id,))
+                return "Música removida com sucesso", 200
+            else:
+                return "Música não encontrada", 404
+            
+    if request.method == "GET":
+        if request.path == "/musicas":
+            query = db.query("SELECT * FROM musicas")
+            result = {"musicas": []}
+            for x in query:
+                result["musicas"].append({"id": x[0], "id_spotify": x[1], "nome": x[2], "id_artista": x[3]})
+            return str(result), 200
+        else:
+            result = db.query("SELECT * FROM musicas WHERE id = ?", (id,))
+            if result:
+                return {"musica":{"id": result[0][0], "id_spotify": result[0][1], "nome": result[0][2], "id_artista": result[0][3]}}, 200
             else:
                 return "Música não encontrada", 404
 
