@@ -205,8 +205,10 @@ def musicas(id = None):
 
 #------------------------- ALL MUSICAS -------------------------------------
         if "/playlist" in request.path:
+            retorno = {"musicas":[]}
             query = db.query("SELECT nome FROM musicas,playlists WHERE id_musica = id\
                               AND id_avaliacao IN (SELECT id FROM avaliacoes WHERE sigla = ?)", id)
+            return retorno["musicas"].append(query[x][2] for x in range(len(query)))
         else:
             result = db.query("SELECT * FROM musicas WHERE id = ?", (id,))
             if result:
