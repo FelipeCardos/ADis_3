@@ -11,7 +11,7 @@ spotify = Spotify("BQCvMxoUO2XMSD9dVQq6w3Pk2e-2Oj3sK2Y130nMjBjgXDKH4CVUhmJJTVIOb
 print("----------------------------------------------------")
 
 @app.route("/utilizadores", methods=["GET", "DELETE", "POST"])
-@app.route("/utilizadores/<int:id>/playlist", methods=["POST","GET"])
+@app.route("/utilizadores/<int:id>/playlist", methods=["POST","GET","DELETE"])
 @app.route("/utilizadores/<int:id>", methods=["GET","PUT","DELETE"])
 def utilizadores(id = None):
     
@@ -58,6 +58,10 @@ def utilizadores(id = None):
                 return "Todos os utilizadores foram apagados", 200
             else:
                 return "Não existem utilizadores", 404
+        if "/playlist" in request.path:
+            db.query("DELETE FROM musicas WHERE nome IN(SELECT nome FROM musicas, playlists \
+                              WHERE id_user = ? AND id_musica = musicas.id AND id_avaliacao <> null",id)
+            return "Todas as músicas avaliadas pelo utilizador foram apagadas com sucesso",200
         else:
             query = db.query("SELECT * FROM utilizadores WHERE id = ?", (id,))
             if query:
@@ -90,7 +94,7 @@ def utilizadores(id = None):
 
 @app.route("/artistas", methods=["GET","DELETE", "POST"])
 @app.route("/artistas/<int:id>", methods=["GET","DELETE"])
-@app.route("/artistas/<ind:id>/playlist", methods=["GET"])
+@app.route("/artistas/<ind:id>/playlist", methods=["GET","DELETE"])
 def artistas(id = None):
     
     if request.method == "POST":
@@ -120,6 +124,9 @@ def artistas(id = None):
                 return "Todos os artistas foram apagados", 200
             else:
                 return "Não existem artistas", 404
+        if "/playlist" in request.path:
+            db.query("DELETE FROM musicas WHERE id_musica IN (SELECT id_musica FROM musicas WHERE id_artista = ?) AND id_avaliacao <> null",id)
+            return "Todas as músicas avaliadas do artista foram apagadas com sucesso",200
         else:
             query = db.query("SELECT * FROM artistas WHERE id = ?", (id,))
             if query:
@@ -150,7 +157,7 @@ def artistas(id = None):
 
 @app.route("/musicas", methods=["GET","DELETE","POST"])
 @app.route("/musicas/<int:id>", methods=["GET","DELETE"])
-@app.route("/musicas/playlist/<int:id>", methods=["GET"])
+@app.route("/musicas/playlist/<int:id>", methods=["GET","DELETE"])
 def musicas(id = None):
     
     if request.method == "POST":
@@ -187,6 +194,10 @@ def musicas(id = None):
                 return "Todas as músicas foram apagadas", 200
             else:
                 return "Não existem músicas", 404
+        if "/playlist" in request.path:
+            db.query("DELETE FROM musicas WHERE nome IN (SELECT nome FROM musicas,playlists WHERE id_musica = id\
+                              AND id_avaliacao IN (SELECT id FROM avaliacoes WHERE sigla = ?))",id)
+            return "Todas as musicas avaliadas com a avaliação foram apagads com sucesso",200
         else:
             query = db.query("SELECT * FROM musicas WHERE id = ?", (id,))
             if query:
