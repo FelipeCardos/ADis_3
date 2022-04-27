@@ -108,7 +108,7 @@ class Client:
             
             
         if checked_type == "C3":
-            return requests.post(self.base + "utilizadores/" + str(command[1]) + "/create-playlist", {'id_musica': command[2], 'avaliacao': command[3]})
+            return requests.post(self.base + "utilizadores/" + str(command[1]) + "/playlist", {'id_musica': command[2], 'avaliacao': command[3]})
         
         
         if checked_type == "C4":
