@@ -11,7 +11,7 @@ spotify = Spotify("BQCvMxoUO2XMSD9dVQq6w3Pk2e-2Oj3sK2Y130nMjBjgXDKH4CVUhmJJTVIOb
 print("----------------------------------------------------")
 
 @app.route("/utilizadores", methods=["GET", "DELETE", "POST"])
-@app.route("/utilizadores/<int:id>/playlist", methods=["POST","GET","DELETE"])
+@app.route("/utilizadores/<int:id>/playlist", methods=["POST","GET","DELETE","PUT"])
 @app.route("/utilizadores/<int:id>", methods=["GET","PUT","DELETE"])
 def utilizadores(id = None):
     
@@ -38,18 +38,34 @@ def utilizadores(id = None):
                 return "Avaliação invalida", 400
     
     if request.method == "PUT":
-        try:
-            senha = request.form["senha"]
-        except:
-            return "senha é obrigatório", 400
-        query =  db.query("SELECT * FROM utilizadores WHERE id = ?", (id,))
-        if not query:
-            return "Utilizador não existe", 404
-        else:
-            db.query("UPDATE utilizadores SET senha = ? WHERE id = ?", (senha, id,))
-            return "Utilizador atualizado com sucesso", 200
-    
-    
+        if request.path == "/utilizadores":
+            try:
+                senha = request.form["senha"]
+            except:
+                return "senha é obrigatório", 400
+            query =  db.query("SELECT * FROM utilizadores WHERE id = ?", (id,))
+            if not query:
+                return "Utilizador não existe", 404
+            else:
+                db.query("UPDATE utilizadores SET senha = ? WHERE id = ?", (senha, id,))
+                return "Utilizador atualizado com sucesso", 200
+        if "/playlist" in request.path:
+            try:
+                avaliacao = request.form["avaliacao"]
+                id_musica = request.form["id_musica"]
+            except:
+                return "Avaliacao e id da musica sao obrigatorios", 400
+            query = db.query("SELECT * FROM playlist WHERE id_user = ? AND id_musica = ?",(id, id_musica))
+            if query:
+                query = db.query("SELECT id FROM avaliacoes WHERE sigla = ?", (avaliacao))
+                if query:
+                    idNovaAvaliacao = query[0]
+                    db.query("UPDATE playlist SET id_avaliacao = ? WHERE id_musica = ? AND id_user = ?", (idNovaAvaliacao, id_musica, id))
+                    return "Avaliacao alterada com sucesso", 200
+                else:
+                    return "Avaliacao não pertence a lista M m S B MB", 404
+            else:
+                return "Musica não encontrada", 404
     if request.method == "DELETE":
         if request.path == "/utilizadores":
             query = db.query("SELECT * FROM utilizadores")
@@ -80,7 +96,7 @@ def utilizadores(id = None):
 #--------------------------MUSICAS_A-----------------------
         if "/playlist" in request.path:
             query = db.query("SELECT nome FROM musicas, playlists \
-                              WHERE id_user = ? AND id_musica = musicas.id AND id_avaliacao <> null", id)
+                              WHERE id_user = ? AND id_musica = musicas.id AND id_avaliacao <> null", (id))
             if query:
                 retorno = {"musicas":[]}
                 return retorno["musicas"].append(query)
@@ -125,7 +141,7 @@ def artistas(id = None):
             else:
                 return "Não existem artistas", 404
         if "/playlist" in request.path:
-            db.query("DELETE FROM musicas WHERE id_musica IN (SELECT id_musica FROM musicas WHERE id_artista = ?) AND id_avaliacao <> null",id)
+            db.query("DELETE FROM musicas WHERE id_musica IN (SELECT id_musica FROM musicas WHERE id_artista = ?) AND id_avaliacao <> null",(id))
             return "Todas as músicas avaliadas do artista foram apagadas com sucesso",200
         else:
             query = db.query("SELECT * FROM artistas WHERE id = ?", (id,))
@@ -144,7 +160,7 @@ def artistas(id = None):
             return str(result), 200
 #-----------------------------MUSICAS_U--------------------------
         if "/playlist" in request.path:
-            query = db.query("SELECT * FROM playlists, musica WHERE id_musica IN (SELECT id_musica FROM musicas WHERE id_artista = ?) AND id_avaliacao <> null",id)
+            query = db.query("SELECT * FROM playlists, musica WHERE id_musica IN (SELECT id_musica FROM musicas WHERE id_artista = ?) AND id_avaliacao <> null",(id))
             if query:
                 retorno = {"musicas":[]}
                 return retorno["musicas"].append(query[x][5] for x in range(len(query)))
@@ -195,9 +211,17 @@ def musicas(id = None):
             else:
                 return "Não existem músicas", 404
         if "/playlist" in request.path:
-            db.query("DELETE FROM musicas WHERE nome IN (SELECT nome FROM musicas,playlists WHERE id_musica = id\
-                              AND id_avaliacao IN (SELECT id FROM avaliacoes WHERE sigla = ?))",id)
-            return "Todas as musicas avaliadas com a avaliação foram apagads com sucesso",200
+            try:
+                avaliacao = request.form["avaliacao"]
+            except:
+                return "Avaliacao invalida",404
+            query = db.query("SELECT id FROM avaliacoes WHERE sigla = ?", (avaliacao))
+            if query:
+                db.query("DELETE FROM musicas WHERE nome IN (SELECT nome FROM musicas,playlists WHERE id_musica = id\
+                                AND id_avaliacao IN (SELECT id FROM avaliacoes WHERE sigla = ?))",(avaliacao))
+                return "Todas as musicas avaliadas com a avaliação foram apagads com sucesso",200
+            else:
+                return "A avaliacao digitada não pertence a lista M m S B MB"
         else:
             query = db.query("SELECT * FROM musicas WHERE id = ?", (id,))
             if query:
@@ -218,7 +242,7 @@ def musicas(id = None):
         if "/playlist" in request.path:
             retorno = {"musicas":[]}
             query = db.query("SELECT nome FROM musicas,playlists WHERE id_musica = id\
-                              AND id_avaliacao IN (SELECT id FROM avaliacoes WHERE sigla = ?)", id)
+                              AND id_avaliacao IN (SELECT id FROM avaliacoes WHERE sigla = ?)", (id))
             return retorno["musicas"].append(query[x][2] for x in range(len(query)))
         else:
             result = db.query("SELECT * FROM musicas WHERE id = ?", (id,))
