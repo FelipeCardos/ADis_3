@@ -1,6 +1,5 @@
 from database import Database
 db = Database("spotify.db")
 db.set_foreign_keys()
-id="M"
-query = db.query("SELECT nome FROM musicas,playlists WHERE id_musica = id AND id_avaliacao IN (SELECT id FROM avaliacoes WHERE sigla = ?)", id)
-print(query) 
+id = 1
+db.query("DELETE FROM musicas WHERE id IN (SELECT DISTINCT ID FROM musicas, playlists WHERE id = playlists.id_musica and playlists.id_user = ?)", (id,))

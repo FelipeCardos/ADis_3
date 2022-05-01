@@ -148,21 +148,21 @@ class Client:
         if checked_type == "C6":
             if command[0] == "READ":
                 if command[2] == "MUSICAS_A":
-                    return requests.get(self.base + "artistas/" + str(command[3]) + "/playlists")
+                    return requests.get(self.base + "artistas/" + str(command[3]) + "/playlist")
                 if command[2] == "MUSICAS_U":
-                    return requests.get(self.base + "utilizadores/" + str(command[3]) + "/playlists")
+                    return requests.get(self.base + "utilizadores/" + str(command[3]) + "/playlist")
             if command[0] == "DELETE":
                 if command[2] == "MUSICAS_A":
-                    return requests.delete(self.base + "artistas/" + str(command[3]) + "/playlists")
+                    return requests.delete(self.base + "artistas/" + str(command[3]) + "/playlist")
                 if command[2] == "MUSICAS_U":
-                    return requests.delete(self.base + "utilizadores/" + str(command[3]) + "/playlists")
+                    return requests.delete(self.base + "utilizadores/" + str(command[3]) + "/playlist")
         
         
         if checked_type == "C7":
             if command[0] == "READ":
-                return requests.get(self.base + "musicas/playlists" + str(command[3]))
+                return requests.get(self.base + "musicas/playlist/" + str(command[3]))
             if command[0] == "DELETE":
-                return requests.delete(self.base + "musicas/playlists" + str(command[3]))
+                return requests.delete(self.base + "musicas/playlist/" + str(command[3]))
         
         
         if checked_type == "C8":
